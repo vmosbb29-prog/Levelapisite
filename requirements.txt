@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+aiohttp
+pycryptodome
+protobuf>=6.26.0
+protobuf-decoder
+requests
+google-play-scraper
+urllib3
+jinja2
+python-multipart
+aiosqlite
+PyJWT
+pytz
