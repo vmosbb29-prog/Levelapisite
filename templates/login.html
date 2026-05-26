@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Login — Level-Up Bot{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">⚡</div>
+      <h1>Level-Up Bot</h1>
+      <p>Sign in to your dashboard</p>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/login" class="auth-form">
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" placeholder="Enter your username" required autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" placeholder="Enter your password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+    </form>
+
+    <p class="auth-footer">
+      Don't have an account? <a href="/register">Create one</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
