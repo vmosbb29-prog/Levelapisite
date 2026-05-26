@@ -1,0 +1,34 @@
+# Python cache — never commit
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Database — never commit live user data
+sessions/
+*.db
+*.db-wal
+*.db-shm
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Replit internal
+.replit-artifact/
