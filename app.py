@@ -528,7 +528,7 @@ async def api_test_notif(session_token: str | None = Cookie(default=None)):
 
 # ─── Cycle history ────────────────────────────────────────────────────────────
 
-@app.api_route("/healthz", methods=["GET", "HEAD"])
+@app.get("/bot/cycle-history")
 async def api_cycle_history(
     days: int = 7,
     session_token: str | None = Cookie(default=None),
@@ -536,22 +536,35 @@ async def api_cycle_history(
     user = get_current_user(session_token)
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
+
     days = max(1, min(days, 30))
     rows = db.get_cycle_history(user["id"], days)
-    return JSONResponse({"ok": True, "history": rows, "days": days})
+
+    return JSONResponse({
+        "ok": True,
+        "history": rows,
+        "days": days
+    })
 
 
 # ─── Health check ─────────────────────────────────────────────────────────────
 
-@app.get("/healthz")
+@app.api_route("/healthz", methods=["GET", "HEAD"])
 async def healthz():
     """Lightweight health-check used by Render / Railway / uptime monitors."""
+
     try:
-        db.get_session_user("__probe__")   # exercises the DB connection
+        db.get_session_user("__probe__")
     except Exception:
-        pass                               # table exists, bad token is fine
-    active_bots    = sum(1 for s in _bot_sessions.values() if s.status == "online")
+        pass
+
+    active_bots = sum(
+        1 for s in _bot_sessions.values()
+        if s.status == "online"
+    )
+
     active_trackers = len(tracker_mgr._entries)
+
     return JSONResponse({
         "status": "ok",
         "active_bots": active_bots,
@@ -561,5 +574,12 @@ async def healthz():
 
 if __name__ == "__main__":
     import uvicorn
+
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
+
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False
+)
