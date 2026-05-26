@@ -528,7 +528,7 @@ async def api_test_notif(session_token: str | None = Cookie(default=None)):
 
 # ─── Cycle history ────────────────────────────────────────────────────────────
 
-@app.get("/bot/cycle-history")
+@app.api_route("/healthz", methods=["GET", "HEAD"])
 async def api_cycle_history(
     days: int = 7,
     session_token: str | None = Cookie(default=None),
