@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: level-up-bot-dashboard
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    disk:
+      name: db-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DB_PATH
+        value: /data/app.db
+      - key: SESSION_SECRET
+        generateValue: true
