@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Level-Up Bot{% endblock %}
+{% block content %}
+
+<div class="app" id="app">
+
+  <!-- ═══ SIDEBAR ══════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <span class="sb-bolt">⚡</span>
+      <span class="sb-name">LEVEL-UP</span>
+    </div>
+
+    <nav class="sb-nav">
+      <a href="#" class="nav-link active" data-tab="tracker">
+        <span class="nl-ico">📡</span>
+        <span class="nl-txt">EXP Tracker</span>
+      </a>
+      <a href="#" class="nav-link" data-tab="bots">
+        <span class="nl-ico">🤖</span>
+        <span class="nl-txt">My Bots</span>
+        <span class="nl-count" id="nav-bot-count" style="display:none">0</span>
+      </a>
+      <a href="#" class="nav-link" data-tab="analytics">
+        <span class="nl-ico">📊</span>
+        <span class="nl-txt">Analytics</span>
+      </a>
+      <a href="#" class="nav-link" data-tab="logs">
+        <span class="nl-ico">📋</span>
+        <span class="nl-txt">Live Logs</span>
+      </a>
+      <a href="#" class="nav-link" data-tab="accounts">
+        <span class="nl-ico">➕</span>
+        <span class="nl-txt">Add Bot</span>
+      </a>
+      <a href="#" class="nav-link" data-tab="notifications">
+        <span class="nl-ico">🔔</span>
+        <span class="nl-txt">Notifications</span>
+      </a>
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-avatar">{{ user.username[0].upper() }}</div>
+        <span class="sb-username">{{ user.username }}</span>
+      </div>
+      <form method="POST" action="/logout">
+        <button type="submit" class="sb-logout" title="Sign out">⏻</button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- Mobile overlay -->
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <!-- ═══ APP BODY ═════════════════════════════════════════ -->
+  <div class="app-body">
+
+    <!-- Mobile topbar -->
+    <header class="topbar" id="topbar">
+      <button class="topbar-menu" id="hamburger-btn" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <span class="sb-bolt">⚡</span>
+        <span class="sb-name">LEVEL-UP</span>
+      </div>
+      <div class="topbar-status" id="topbar-status">
+        <span class="status-led" id="status-led"></span>
+        <span id="status-text">0 online</span>
+      </div>
+    </header>
+
+    <!-- ═══ MAIN ══════════════════════════════════════════ -->
+    <main class="main">
+
+      <!-- ══ TAB: EXP TRACKER ══════════════════════════════ -->
+      <section class="tab-panel active" id="tab-tracker">
+        <div class="page-hdr">
+          <div class="page-hdr-left">
+            <h2>EXP Tracker</h2>
+            <p class="page-desc">Live Free Fire player monitoring · updates every 60s</p>
+          </div>
+          <div class="tracker-input-row">
+            <input type="text" id="new-track-uid" class="input-base tracker-uid-field"
+                   placeholder="Enter UID to track…"
+                   onkeydown="if(event.key==='Enter')addTracker()">
+            <button class="btn btn-cyan" onclick="addTracker()">+ Track</button>
+          </div>
+        </div>
+
+        <div id="tracker-grid" class="tracker-grid">
+          <div class="empty-msg" id="tracker-empty">
+            <div class="empty-icon">📡</div>
+            <p>No UIDs being tracked.<br>Enter a Free Fire UID above to start.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ TAB: BOTS ════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-bots">
+        <div class="page-hdr">
+          <div class="page-hdr-left">
+            <h2>My Bots</h2>
+            <p class="page-desc">Manage and control your game bots</p>
+          </div>
+        </div>
+
+        <!-- Global stats -->
+        <div class="stat-grid">
+          <div class="stat-card stat-purple">
+            <div class="stat-icon">🤖</div>
+            <div class="stat-body">
+              <div class="stat-val" id="s-active">0</div>
+              <div class="stat-lbl">Active Bots</div>
+            </div>
+          </div>
+          <div class="stat-card stat-cyan">
+            <div class="stat-icon">🔄</div>
+            <div class="stat-body">
+              <div class="stat-val" id="s-cycles">0</div>
+              <div class="stat-lbl">Total Cycles</div>
+            </div>
+          </div>
+          <div class="stat-card stat-green">
+            <div class="stat-icon">⏱</div>
+            <div class="stat-body">
+              <div class="stat-val" id="s-uptime">—</div>
+              <div class="stat-lbl">Total Uptime</div>
+            </div>
+          </div>
+          <div class="stat-card stat-pink">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-body">
+              <div class="stat-val" id="s-rate">—</div>
+              <div class="stat-lbl">Cycles / hr</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bot cards -->
+        {% if accounts %}
+        <div class="bot-grid" id="bot-grid">
+          {% for acc in accounts %}
+          <div class="bot-card {{ acc.bot_status }}" id="card-{{ acc.id }}">
+
+            <!-- Card top -->
+            <div class="bc-top">
+              <div class="bc-info">
+                <div class="bc-name">{{ acc.label or ('Bot ' ~ loop.index) }}</div>
+                <div class="bc-uid">{{ acc.uid }}</div>
+                <div class="bc-row">
+                  <span class="tag-region">{{ acc.region }}</span>
+                  <span class="bc-dname" id="dname-{{ acc.id }}">{% if acc.display_name %}{{ acc.display_name }}{% endif %}</span>
+                </div>
+              </div>
+              <span class="bot-badge {{ acc.bot_status }}" id="badge-{{ acc.id }}">
+                <span class="badge-dot"></span>
+                <span id="badge-txt-{{ acc.id }}">{{ acc.bot_status | upper }}</span>
+              </span>
+            </div>
+
+            <!-- Stats strip (online only) -->
+            <div class="bc-stats" id="stats-{{ acc.id }}"
+                 style="{{ '' if acc.bot_status == 'online' else 'display:none' }}">
+              <span class="bc-stat">
+                <span class="bc-stat-n" id="cycles-{{ acc.id }}">{{ acc.cycles_completed }}</span>
+                <span class="bc-stat-l">Cycles</span>
+              </span>
+              <span class="bc-stat-div"></span>
+              <span class="bc-stat">
+                <span class="bc-stat-n" id="uptime-{{ acc.id }}">—</span>
+                <span class="bc-stat-l">Uptime</span>
+              </span>
+            </div>
+
+            <!-- Controls -->
+            <div class="bc-body">
+
+              <!-- Start form (offline) -->
+              <form class="form-start" id="fstart-{{ acc.id }}"
+                    style="{{ 'display:none' if acc.bot_status == 'online' else '' }}"
+                    onsubmit="startBot(event, {{ acc.id }})">
+                <input type="hidden" name="account_id" value="{{ acc.id }}">
+                <input type="hidden" name="uid"        value="{{ acc.uid }}">
+                <input type="hidden" name="password"   value="{{ acc.password }}">
+                <button type="submit" class="btn btn-start btn-full" id="bstart-{{ acc.id }}">
+                  ▶ Start Bot
+                </button>
+              </form>
+
+              <!-- Online controls -->
+              <div id="octrl-{{ acc.id }}" class="online-ctrl"
+                   style="{{ '' if acc.bot_status == 'online' else 'display:none' }}">
+
+                <!-- Teamcode row -->
+                <form class="tc-row" onsubmit="runTeamcode(event, {{ acc.id }})">
+                  <input type="hidden" name="account_id" value="{{ acc.id }}">
+                  <input type="text" name="teamcode" id="tc-{{ acc.id }}"
+                         class="input-base tc-field" placeholder="Team Code"
+                         pattern="[0-9]+" required value="{{ acc.last_teamcode }}">
+                  <button type="submit" class="btn btn-run"
+                          id="brun-{{ acc.id }}"
+                          style="{{ 'display:none' if acc.auto_running else '' }}">🚀</button>
+                  <button type="button" class="btn btn-stopauto"
+                          id="bstopauto-{{ acc.id }}"
+                          onclick="stopAuto({{ acc.id }})"
+                          style="{{ '' if acc.auto_running else 'display:none' }}">⏹</button>
+                </form>
+
+                <!-- Auto indicator -->
+                <div class="auto-ind" id="autoind-{{ acc.id }}"
+                     style="{{ '' if acc.auto_running else 'display:none' }}">
+                  <span class="pulse-dot"></span>
+                  Auto-start loop running
+                </div>
+
+                <!-- Stop bot -->
+                <button class="btn btn-stop btn-full" id="bstop-{{ acc.id }}"
+                        onclick="stopBot({{ acc.id }})">■ Stop Bot</button>
+
+                <!-- Tracker row -->
+                <div class="tracker-row" id="trackrow-{{ acc.id }}">
+                  <input type="text" id="track-uid-{{ acc.id }}"
+                         class="input-base tc-field"
+                         placeholder="🎯 Track UID">
+                  <button type="button" class="btn btn-track"
+                          id="btn-track-{{ acc.id }}"
+                          onclick="startTrackerFromCard({{ acc.id }})">📡</button>
+                </div>
+                <div class="tracker-active" id="trackind-{{ acc.id }}" style="display:none">
+                  <span class="pulse-dot cyan-dot"></span>
+                  <span>Tracking <strong id="trackuid-disp-{{ acc.id }}"></strong></span>
+                  <button class="close-btn" onclick="stopTrackerFromCard({{ acc.id }})">✕</button>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Card footer -->
+            <div class="bc-footer">
+              <button class="bc-action" onclick="openLogs({{ acc.id }})">📋 Logs</button>
+              <button class="bc-action bc-action-del" onclick="deleteAccount({{ acc.id }})">🗑 Remove</button>
+            </div>
+
+          </div>
+          {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="empty-msg">
+          <div class="empty-icon">🤖</div>
+          <p>No bots configured yet.</p>
+          <button class="btn btn-primary mt8" onclick="switchTab('accounts')">+ Add Account</button>
+        </div>
+        {% endif %}
+      </section>
+
+      <!-- ══ TAB: ANALYTICS ════════════════════════════════ -->
+      <section class="tab-panel" id="tab-analytics">
+        <div class="page-hdr">
+          <div class="page-hdr-left">
+            <h2>Analytics</h2>
+            <p class="page-desc">Live performance overview</p>
+          </div>
+        </div>
+
+        <div class="rings-row">
+          <div class="ring-card">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 120 120" class="ring-svg">
+                <circle cx="60" cy="60" r="50" class="ring-track"/>
+                <circle cx="60" cy="60" r="50" class="ring-fill ring-purple"
+                        id="ring-active" transform="rotate(-90 60 60)"
+                        style="stroke-dasharray:314.16;stroke-dashoffset:314.16"/>
+              </svg>
+              <div class="ring-center">
+                <div class="ring-val" id="rval-active">0%</div>
+                <div class="ring-sub">active</div>
+              </div>
+            </div>
+            <div class="ring-meta">
+              <div class="ring-label">Bot Activation</div>
+              <div class="ring-desc" id="rdesc-active">— of {{ accounts|length }} running</div>
+            </div>
+          </div>
+
+          <div class="ring-card">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 120 120" class="ring-svg">
+                <circle cx="60" cy="60" r="50" class="ring-track"/>
+                <circle cx="60" cy="60" r="50" class="ring-fill ring-cyan"
+                        id="ring-cycles" transform="rotate(-90 60 60)"
+                        style="stroke-dasharray:314.16;stroke-dashoffset:314.16"/>
+              </svg>
+              <div class="ring-center">
+                <div class="ring-val" id="rval-cycles">0</div>
+                <div class="ring-sub">total</div>
+              </div>
+            </div>
+            <div class="ring-meta">
+              <div class="ring-label">Total Cycles</div>
+              <div class="ring-desc" id="rdesc-cycles">all bots combined</div>
+            </div>
+          </div>
+
+          <div class="ring-card">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 120 120" class="ring-svg">
+                <circle cx="60" cy="60" r="50" class="ring-track"/>
+                <circle cx="60" cy="60" r="50" class="ring-fill ring-green"
+                        id="ring-rate" transform="rotate(-90 60 60)"
+                        style="stroke-dasharray:314.16;stroke-dashoffset:314.16"/>
+              </svg>
+              <div class="ring-center">
+                <div class="ring-val" id="rval-rate">0</div>
+                <div class="ring-sub">/hr</div>
+              </div>
+            </div>
+            <div class="ring-meta">
+              <div class="ring-label">Avg Rate</div>
+              <div class="ring-desc" id="rdesc-rate">cycles per hour</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt16">
+          <div class="card-hdr">📈 Per-Bot Performance</div>
+          <div class="tbl-wrap">
+            <table class="data-tbl">
+              <thead>
+                <tr><th>Bot</th><th>Status</th><th>Cycles</th><th>Uptime</th><th>Rate/hr</th><th>Last Code</th></tr>
+              </thead>
+              <tbody id="perf-tbody">
+                {% for acc in accounts %}
+                <tr data-id="{{ acc.id }}">
+                  <td>
+                    <div class="tbl-name">{{ acc.label or ('Bot ' ~ loop.index) }}</div>
+                    <div class="tbl-uid">{{ acc.uid }}</div>
+                  </td>
+                  <td>
+                    <span class="bot-badge {{ acc.bot_status }}" id="tbl-badge-{{ acc.id }}">
+                      <span class="badge-dot"></span>{{ acc.bot_status | upper }}
+                    </span>
+                  </td>
+                  <td class="tbl-mono" id="pt-cyc-{{ acc.id }}">{{ acc.cycles_completed }}</td>
+                  <td class="tbl-mono" id="pt-upt-{{ acc.id }}">—</td>
+                  <td class="tbl-mono" id="pt-rte-{{ acc.id }}">—</td>
+                  <td><code id="pt-cod-{{ acc.id }}">{{ acc.last_teamcode or '—' }}</code></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Cycle History Chart -->
+        <div class="card mt16">
+          <div class="card-hdr" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>📊 Cycle History</span>
+            <div style="display:flex;gap:.5rem;align-items:center;">
+              <select id="history-days" class="input-base" style="width:auto;font-size:.8rem;padding:.25rem .6rem;" onchange="loadCycleHistory()">
+                <option value="7">Last 7 days</option>
+                <option value="14">Last 14 days</option>
+                <option value="30">Last 30 days</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="cycle-chart" class="cycle-chart"></canvas>
+            <div id="chart-empty" class="chart-empty" style="display:none">
+              <span>No cycle data yet — stop a running bot to save a session.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ TAB: LOGS ══════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-logs">
+        <div class="page-hdr">
+          <div class="page-hdr-left">
+            <h2>Live Logs</h2>
+            <p class="page-desc">Real-time bot activity stream</p>
+          </div>
+          <div class="log-ctrl-row">
+            <select id="log-bot-select" onchange="switchLogBot()" class="input-base log-sel">
+              <option value="">— Select bot —</option>
+              {% for acc in accounts %}
+              <option value="{{ acc.id }}">{{ acc.label or ('Bot ' ~ loop.index) }} ({{ acc.uid }})</option>
+              {% endfor %}
+            </select>
+            <input type="text" id="log-search" class="input-base log-search" placeholder="Filter…">
+            <label class="check-label"><input type="checkbox" id="auto-scroll" checked> Auto-scroll</label>
+            <button class="btn btn-outline btn-sm" id="btn-clear-logs">Clear</button>
+          </div>
+        </div>
+
+        <div class="terminal-card">
+          <div class="terminal-bar">
+            <div class="term-dots">
+              <span class="td td-r"></span>
+              <span class="td td-y"></span>
+              <span class="td td-g"></span>
+            </div>
+            <span class="term-title" id="log-bot-label">No bot selected</span>
+            <span class="term-count" id="log-entry-count">0 lines</span>
+          </div>
+          <div class="log-panel" id="log-panel">
+            <span class="log-hint">Select a bot above to view live logs.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ TAB: ACCOUNTS ══════════════════════════════════ -->
+      <section class="tab-panel" id="tab-accounts">
+        <div class="page-hdr">
+          <div class="page-hdr-left">
+            <h2>Add Account</h2>
+            <p class="page-desc">Register a new game account as a bot</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">🎮 New Bot Account</div>
+          <form id="form-add-account" class="acct-form">
+            <div class="form-grid">
+              <div class="field">
+                <label>Label <small>(optional)</small></label>
+                <input name="label" type="text" class="input-base" placeholder="e.g. Main Bot">
+              </div>
+              <div class="field">
+                <label>Game UID</label>
+                <input name="uid" type="text" class="input-base" placeholder="4435122955" required>
+              </div>
+              <div class="field">
+                <label>Password</label>
+                <input name="password" type="password" class="input-base" placeholder="Game password" required>
+              </div>
+              <div class="field">
+                <label>Region</label>
+                <select name="region" class="input-base">
+                  <option value="IND">IND — India</option>
+                  <option value="BD">BD — Bangladesh</option>
+                  <option value="SG">SG — Singapore</option>
+                  <option value="ID">ID — Indonesia</option>
+                  <option value="TH">TH — Thailand</option>
+                  <option value="VN">VN — Vietnam</option>
+                  <option value="MY">MY — Malaysia</option>
+                  <option value="PK">PK — Pakistan</option>
+                  <option value="LATAM">LATAM</option>
+                  <option value="BR">BR — Brazil</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Account</button>
+          </form>
+        </div>
+
+        {% if accounts %}
+        <div class="card mt16">
+          <div class="card-hdr">💾 Saved Accounts</div>
+          <div class="tbl-wrap">
+            <table class="data-tbl">
+              <thead>
+                <tr><th>Label</th><th>UID</th><th>Region</th><th>Status</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+                {% for acc in accounts %}
+                <tr data-id="{{ acc.id }}">
+                  <td>{{ acc.label or '—' }}</td>
+                  <td><code>{{ acc.uid }}</code></td>
+                  <td><span class="tag-region">{{ acc.region }}</span></td>
+                  <td>
+                    <span class="bot-badge {{ acc.bot_status }}" id="tbl-badge-{{ acc.id }}">
+                      <span class="badge-dot"></span>{{ acc.bot_status | upper }}
+                    </span>
+                  </td>
+                  <td><button class="btn btn-danger btn-sm" onclick="deleteAccount({{ acc.id }})">Delete</button></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+      </section>
+
+      <!-- ══ TAB: NOTIFICATIONS ════════════════════════════ -->
+      <section class="tab-panel" id="tab-notifications">
+        <div class="page-hdr">
+          <div class="page-hdr-left">
+            <h2>Notifications</h2>
+            <p class="page-desc">Get alerted when bots go offline or reconnect</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">💬 Discord</div>
+          <form id="form-notif" class="notif-form">
+            <div class="notif-section">
+              <div class="field">
+                <label>Webhook URL</label>
+                <input name="discord_webhook" type="url" class="input-base"
+                       placeholder="https://discord.com/api/webhooks/…"
+                       value="{{ notif.discord_webhook or '' }}">
+                <small class="field-hint">Server Settings → Integrations → Webhooks → Copy Webhook URL</small>
+              </div>
+            </div>
+
+            <div class="card-hdr" style="margin:.75rem -1rem;padding:.5rem 1rem;">📱 Telegram</div>
+            <div class="notif-section">
+              <div class="field">
+                <label>Bot Token</label>
+                <input name="telegram_token" type="text" class="input-base"
+                       placeholder="123456:ABC-DEF1234ghIkl…"
+                       value="{{ notif.telegram_token or '' }}">
+                <small class="field-hint">Get from @BotFather on Telegram</small>
+              </div>
+              <div class="field">
+                <label>Chat ID</label>
+                <input name="telegram_chat_id" type="text" class="input-base"
+                       placeholder="-100123456789"
+                       value="{{ notif.telegram_chat_id or '' }}">
+                <small class="field-hint">Your personal chat ID or a group/channel ID</small>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem;">
+              <button type="submit" class="btn btn-primary">Save Settings</button>
+              <button type="button" class="btn btn-outline" onclick="testNotification()">Send Test</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card mt16">
+          <div class="card-hdr">ℹ️ All 11 alert types you'll receive</div>
+          <ul class="notif-info-list">
+            <li>✅ Bot <strong>online</strong> — connected successfully</li>
+            <li>🔴 Bot <strong>stopped</strong> — manually stopped</li>
+            <li>🔄 <strong>TCP connection dropped</strong> — reconnect starting</li>
+            <li>✅ <strong>Reconnected</strong> — watchdog re-login succeeded</li>
+            <li>❌ <strong>Reconnect failed</strong> — all retries exhausted, bot offline</li>
+            <li>🚀 <strong>Auto-start launched</strong> — team code run started</li>
+            <li>⏹️ <strong>Auto-start stopped</strong> — team code run ended</li>
+            <li>🔁 <strong>Cycle milestone</strong> — every 5 completed cycles</li>
+            <li>📡 <strong>EXP Tracker started</strong> — a UID is now being tracked</li>
+            <li>📡 <strong>EXP Tracker stopped</strong> — a tracker was removed</li>
+            <li>🏆 <strong>Level up!</strong> — tracked player gained a level</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+  </div><!-- .app-body -->
+</div><!-- .app -->
+
+<div id="toast" class="toast" aria-live="polite"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.ACCOUNTS   = {{ accounts | tojson }};
+  window.TOTAL_BOTS = {{ accounts | length }};
+</script>
+{% endblock %}
